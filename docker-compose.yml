@@ -1,0 +1,57 @@
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-devpilot}
+      POSTGRES_USER: ${POSTGRES_USER:-devpilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - devpilot_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DEVPILOT_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-devpilot}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-devpilot}
+      DEVPILOT_JWT_SECRET: ${DEVPILOT_JWT_SECRET:?Set DEVPILOT_JWT_SECRET in .env}
+      DEVPILOT_ENVIRONMENT: production
+      DEVPILOT_FRONTEND_ORIGIN: http://127.0.0.1:5173
+      DEVPILOT_LLM_BASE_URL: ${DEVPILOT_LLM_BASE_URL:-}
+      DEVPILOT_LLM_API_KEY: ${DEVPILOT_LLM_API_KEY:-}
+      DEVPILOT_LLM_MODEL: ${DEVPILOT_LLM_MODEL:-}
+    command: ["sh", "-c", "python -m alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  web:
+    image: node:24-alpine
+    working_dir: /workspace/frontend
+    environment:
+      VITE_API_PROXY: http://api:8000
+    volumes:
+      - ./frontend:/workspace/frontend
+      - frontend_node_modules:/workspace/frontend/node_modules
+    command: ["sh", "-c", "npm ci && npm run dev -- --host 0.0.0.0"]
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  devpilot_postgres:
+  frontend_node_modules:

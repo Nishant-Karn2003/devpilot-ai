@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tox/
+.cache/
+.coverage
+.coverage.*
+htmlcov/
+.venv/
+venv/
+backend/.venv/
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Node
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+test-results/
+playwright-report/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+
+# Temporary files and logs
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp
+*.swo
+~$*
+
+# Editors and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
